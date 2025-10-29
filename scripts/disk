@@ -50,8 +50,15 @@ error()
 {
     echo $@
 }
-#--------------------------------------------------------------
 
+#--------------------------------------------------------------
+find_disks()
+{
+disks=`LANG=C fdisk -l 2>/dev/null | grep "Disk /dev" | \
+		grep -v "/dev/ram" | cut -d: -f1 | cut -d" " -f2`
+}
+
+#--------------------------------------------------------------
 partition_or_volume_info()
 {
 	local dev="$1"
@@ -74,20 +81,11 @@ partition_or_volume_info()
 #--------------------------------------------------------------
 parameter_p()
 {
-	disks=`LANG=C fdisk -l  2>/dev/null | grep "Disk /dev" | cut -d: -f1 | cut -d" " -f2`
-	# parts=`gdisk -l $disk | fgrep -v "Extended" | fgrep '^/dev/' | cut -d " " -f1 | cut -d "/" -f 3`
-
+	find_disks
 	for disk in ${disks}
 	do
 		parts=$(fdisk -l $disk 2>/dev/null | grep -v "Extended" | \
 			grep '^/dev/' | cut -d " " -f1)
-
-		# GPT disks appear in fdisk as a single partition of System GPT
-		if [ "${parts}" = "${disk}1" ] && \
-		   [ -n "$(fdisk -l $disk 2>/dev/null | awk '/^\/dev\//{if($6 == "GPT"){print "GPT"}}')" ] ; then
-			# Extract partition numbers from gdisk
-			parts=$(gdisk -l ${disk} 2>/dev/null | awk '/^ +[[:digit:]]/{print "'${disk}'"$1}')
-		fi
 
 		for part in $parts
 		do
@@ -100,23 +98,24 @@ parameter_p()
 		partition_or_volume_info $vol lvm
 	done
 }
+
 #--------------------------------------------------------------
 parameter_d()
 {
-	LANG=C fdisk -l 2>/dev/null | grep "Disk /dev" | \
-		cut -d: -f1 | cut -d" " -f2 | \
-		fgrep -v "/dev/dm"
+	find_disks
+	echo "$disks" | grep -v "/dev/dm"
 }
+
 #--------------------------------------------------------------
 parameter_n()
 {
-	disks=`LANG=C fdisk -l 2>/dev/null | grep "Disk /dev" |\
-	grep -v "/dev/dm" | cut -d: -f1 | cut -d" " -f2`
+	disks=$(parameter_d)
 	for disk in ${disks}; do
-		readlink -f /sys/block/${disk##/dev/}/device |\
+		readlink -f /sys/block/${disk##/dev/}/device | \
 			grep -q usb || printf "%s\n" ${disk}
 	done
 }
+
 #--------------------------------------------------------------
 parameter_u()
 {
