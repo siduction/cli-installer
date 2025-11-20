@@ -1,3 +1,17 @@
+cli-installer (0.5.0) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Change from /bin/sh to /usr/bin/bash
+      Reason: We would like to use some bash extensions and
+      upstream is located in "Morgue for obsolete fullstory packages".
+    - Fix various missing double quotation marks.
+    - filesystems to format: new 'btrfs', remowed 'ext3, jfs, reiser*'
+    - When installin on btrfs subvolumes are created and the default is set.
+    - set_mount_points(): Simplified code
+
+ -- Axel Konrad <ak-li@siduction.org> Thu, 20 Nov 2025
+
 cli-installer (0.4.5) unstable; urgency=medium
 
   [ Axel Konrad ]
