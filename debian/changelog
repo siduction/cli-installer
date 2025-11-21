@@ -1,3 +1,11 @@
+cli-installer (0.5.1) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Now it finds unmounted swap partitions too.
+
+ -- Axel Konrad <ak-li@siduction.org> Fri, 21 Nov 2025
+
 cli-installer (0.5.0) unstable; urgency=medium
 
   [ Axel Konrad ]

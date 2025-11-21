@@ -754,9 +754,9 @@ select_swap ()
 		msg="Select the partitions you want to be used as swap by the installer"
 		select_more "$title" "$msg" $(cat $SWAP_PART_LIST)
 		if [ "$?" -eq 0 ]; then
-			#ssft returns a list with \n in it. remove it and also use sed to remove the space
-			#at the end of the line
-			SWAP_LIST="$(echo "${SSFT_RESULT}" | tr '\n' ' ' | sed 's/ $//g' )"
+			# ssft returns a list with \n in it. Change it to " " and also use
+			# sed to remove the space at the end of the line
+			SWAP_LIST="$(echo "${SSFT_RESULT}" | tr '\n' ' ' | sed 's/ $//' )"
 		fi
 	else
 		title="Select swap"
@@ -1114,10 +1114,10 @@ ignore_disk_space
 auto_detect_swap
 
 if [ "${AUTO_SWAP}" = "no" ]; then
-	cut -d" " -f1 /proc/swaps | grep -v "Filename" >> "${SWAP_PART_LIST}"
+	blkid -t TYPE=swap -o device | tr '\n' ' ' >> "${SWAP_PART_LIST}"
 	select_swap
 else
-	SWAP_LIST="$(cut -d" " -f1 /proc/swaps | grep -v "Filename" | tr '\n' ' ' | sed 's/ $//')"
+	SWAP_LIST="$(blkid -t TYPE=swap -o device | tr '\n' ' ')"
 fi
 
 input_real_name
