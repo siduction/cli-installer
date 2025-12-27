@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# (C) 2008-2010 Joaquim Boura <x-un-i@berlios.de>
+# (C) 2025      Axel Konrad <ak-li@siduction.org>
+#     2008-2010 Joaquim Boura <x-un-i@berlios.de>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -55,49 +56,44 @@ fdisk -l "$DISK" | grep "^${DISK}" > $PARTITION_AFTER
 # take care when PARTITION_BEFORE was empty
 # otherwise deny any work 
 #-------------------------------------------------
-# 4. now compare and if there are changes purpose user to format
+# 4. now compare and if there are changes format
 # the "newly" created partitions
 #-------------------------------------------------
 #
-if [ -s $PARTITION_AFTER -a -s $PARTITION_BEFORE ]; then
-	awk  '{var = $(NF-1); if (var == "/") {var = $(NF-4);} printf("%s %s\n", $1, var);}'  $PARTITION_AFTER | \
-	while read part id; do
-		old_line=$(grep -w "${part}" $PARTITION_BEFORE)
-		new_line=$(grep -w "${part}" $PARTITION_AFTER)
+if [ -s $PARTITION_AFTER ] && [ -s $PARTITION_BEFORE ]; then
+	while read line; do
+		part_after=$(cut -d" " -f1 <<< "$line")
+		line_before=$(grep -w "$part_after" "$PARTITION_BEFORE")
+		
+		# We use the PARTTYPE UUID
+		if [ ! "$line" = "$line_before" ]; then
+			case $(lsblk -n -o PARTTYPE "$part_after") in
 
-		if [ "$new_line" = "$old_line" ]; then
-			echo "nothing to be done for partition ${part}"
-		else
-			case $id in
-			82)
-				mkswap ${part}
+			# Linux filesystem
+			0fc63daf-8483-4772-8e79-3d69d8477de4)
+				echo "Formatting the partition $part with ext4."
+				mkfs.ext4 -F "$part" &>/dev/null
 				;;
-			83)
-				mkfs.ext4 ${part}
+
+			# EFI System
+			c12a7328-f81f-11d2-ba4b-00a0c93ec93b)
+				echo "Formatting the partition $part (ESP) with vfat."
+				mkfs.vfat "$part" &>/dev/null
+				;;
+
+			# Linux swap
+			0657fd6d-a4ab-43c4-84e5-0933c84b4f4f)
+				echo "Make swap on partition $part."
+				mkswap "$part" &>/dev/null
 				;;
 			*)
-				echo "Skipping ${part} ..."
+				echo "Skipping partition $part"
 				;;
 			esac
 		fi
-	done 
-elif [ -s $PARTITION_AFTER -a ! -s $PARTITION_BEFORE ]; then
-	awk  '{var = $(NF-1); if (var == "/") {var = $(NF-4);} printf("%s %s\n", $1, var);}'  $PARTITION_AFTER | \
-	while read part id; do
-		case $id in
-		82)
-			mkswap ${part}
-			;;
-		83)
-			mkfs.ext4 ${part}
-			;;
-		*)
-			echo "Skipping ${part} ..."
-			;;
-		esac
-	done 
+	done < "$PARTITION_AFTER"
 else
-	: # do nothing, cleanup and leave
+	true # do nothing, cleanup and leave
 fi
 
 test -e "$PARTITION_BEFORE" && rm -f "$PARTITION_BEFORE"

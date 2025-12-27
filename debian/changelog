@@ -1,3 +1,31 @@
+cli-installer (0.5.3) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Removed some default settings for variables
+    - Optimize double quote and curly braces
+    - Use the if query directly on a function instead of [ "$?" -eq 0 ]
+    - Funktion ignore_disk_space() currently unavailable
+  * disk
+    - Optimize double quote and curly braces
+    - Use lsblk or blkid instead of fdisk-grep-cut
+  * cfdisk_wrapper
+    - Switch from old 'part id' to 'PARTTYPE UUID'
+    - Removed unsupported option '-a' from tests
+  * um_all
+    - Optimize double quote and curly braces
+    - Changed deprecated commands and options
+
+ -- Axel Konrad <ak-li@siduction.org> Sat, 27 Dec 2025
+
+cli-installer (0.5.2) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - place_boot_loader with efi
+
+ -- Axel Konrad <ak-li@siduction.org> Sun, 12 Dec 2025
+
 cli-installer (0.5.1) unstable; urgency=medium
 
   [ Axel Konrad ]
