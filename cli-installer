@@ -53,8 +53,6 @@ call_help() {
 	exit
 }
 
-[ -x /usr/bin/setupcon ] && /usr/bin/setupcon
-
 while getopts vhI: opt; do
 	case $opt in
 		v)  echo "Version: 0.2.9"; exit;;
@@ -63,11 +61,13 @@ while getopts vhI: opt; do
 	esac
 done
 
+
 if [ "$( id -u )" -ne 0 ]; then
 	echo >&2 "E: You need to be root to run the script"
 	exit 1
 fi
 
+# Set up frontend
 if [ -f /usr/bin/ssft.sh ]; then
 	. /usr/bin/ssft.sh || exit 1
 
@@ -82,6 +82,17 @@ else
 	echo "Please install ssft"
 	exit 1
 fi
+
+# Configuration for console
+#if [ -x /usr/bin/setupcon ]; then
+#	cp /etc/default/console-setup /root/.console-setup.tty
+#	cp /etc/default/keyboard /root/.keyboard.tty
+#	sed -i -e /"CHARMAP"/'s/".*"/"ISO-8859-2"/' \
+#		-e /"FONTFACE"/'s/".*"/"TerminusBold"/' \
+#		-e /"FONTSIZE"/'s/".*"/"12x24"/' /root/.console-setup.tty
+#	sed -i /"XKBVARIANT="/'s/".*"/"nodeadkeys"/' /root/.keyboard.tty
+#	/usr/bin/setupcon tty
+#fi
 
 ### DEFINE CONSTANTS ###
 #-----------------------------------------------------------------------
@@ -113,6 +124,8 @@ SWAP_PART_LIST=$(mktemp /tmp/swap_part_list.XXXXXXXX)
 
 if [ -f "$CONFIG_FILE" ]; then
 	echo >&2 "E: Config file \"$CONFIG_FILE\" exists please remove it and run the script again"
+	# Return to the previous tty setting.
+#	/usr/bin/setupcon
 	exit 1
 fi
 
@@ -153,6 +166,7 @@ AUTOMOUNT_BOOT="yes"
 
 # make sure that if ctrl+C is pushed, the config file and the temporary files are removed
 # same for SIGTERM
+#trap "rm -f '$CONFIG_FILE'; rm -f '$PARTITIONS_LIST'; rm -f '$PARTITIONS_LIST_2'; /usr/bin/setupcon; clear; exit 2" $SIGINT $SIGTERM
 trap "rm -f '$CONFIG_FILE'; rm -f '$PARTITIONS_LIST'; rm -f '$PARTITIONS_LIST_2'; clear; exit 2" $SIGINT $SIGTERM
 
 ### GENERAL PURPOSE FUNCTIONS
@@ -630,7 +644,10 @@ VERY IMPORTANT WARNING!
 				return "2"
 				;;
 			"Cancel_the_cli-installer")
-				clear && exit 1
+				clear
+				# Return to the previous tty setting.
+#				/usr/bin/setupcon
+				exit 1
 				;;
 			*)
 				true
@@ -1073,7 +1090,6 @@ write_config() {
 	echo "" >> "$CONFIG_FILE"
 
 	echo "# The swap partitions to be used by the installed siduction." >> "$CONFIG_FILE"
-	echo "# This value will be checked by function module_swap_check (install-gui)" >> "$CONFIG_FILE"
 	echo "SWAP_CHOICES=\"${SWAP_LIST}\"" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
@@ -1216,6 +1232,9 @@ Do you want to start the installation?
 I: If you choose 'no' the configuration file will stay in $CONFIG_FILE!"
 if yesno "$title" "$msg"; then
 	clear
+	# Return to the previous tty setting.
+#	/usr/bin/setupcon
+
 	fll-installer || echo "Some error occured. Looking at $ERROR_LOG might provide you with answers" && exit 1
 else
 	clear

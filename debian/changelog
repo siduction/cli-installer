@@ -1,3 +1,12 @@
+cli-installer (0.5.4) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * Delete install-gui.bash 
+  * cli-installer
+    - Remove comment with install-gui
+
+ -- Axel Konrad <ak-li@siduction.org> Mon, 12 Jan 2026
+
 cli-installer (0.5.3) unstable; urgency=medium
 
   [ Axel Konrad ]
