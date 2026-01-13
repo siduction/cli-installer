@@ -5,7 +5,7 @@ cli-installer (0.5.4) unstable; urgency=medium
   * cli-installer
     - Remove comment with install-gui
 
- -- Axel Konrad <ak-li@siduction.org> Mon, 12 Jan 2026
+ -- Axel Konrad <ak-li@siduction.org>  Mon, 12 Jan 2026 14:54:01 +0200
 
 cli-installer (0.5.3) unstable; urgency=medium
 
@@ -25,7 +25,7 @@ cli-installer (0.5.3) unstable; urgency=medium
     - Optimize double quote and curly braces
     - Changed deprecated commands and options
 
- -- Axel Konrad <ak-li@siduction.org> Sat, 27 Dec 2025
+ -- Axel Konrad <ak-li@siduction.org>  Sat, 27 Dec 2025 14:54:01 +0200
 
 cli-installer (0.5.2) unstable; urgency=medium
 
@@ -33,7 +33,7 @@ cli-installer (0.5.2) unstable; urgency=medium
   * cli-installer
     - place_boot_loader with efi
 
- -- Axel Konrad <ak-li@siduction.org> Sun, 12 Dec 2025
+ -- Axel Konrad <ak-li@siduction.org>  Sun, 12 Dec 2025 14:54:01 +0200
 
 cli-installer (0.5.1) unstable; urgency=medium
 
@@ -41,7 +41,7 @@ cli-installer (0.5.1) unstable; urgency=medium
   * cli-installer
     - Now it finds unmounted swap partitions too.
 
- -- Axel Konrad <ak-li@siduction.org> Fri, 21 Nov 2025
+ -- Axel Konrad <ak-li@siduction.org>  Fri, 21 Nov 2025 14:54:01 +0200
 
 cli-installer (0.5.0) unstable; urgency=medium
 
@@ -55,7 +55,7 @@ cli-installer (0.5.0) unstable; urgency=medium
     - When installin on btrfs subvolumes are created and the default is set.
     - set_mount_points(): Simplified code
 
- -- Axel Konrad <ak-li@siduction.org> Thu, 20 Nov 2025
+ -- Axel Konrad <ak-li@siduction.org>  Thu, 20 Nov 2025 14:54:01 +0200
 
 cli-installer (0.4.5) unstable; urgency=medium
 
@@ -65,7 +65,7 @@ cli-installer (0.4.5) unstable; urgency=medium
   * change variable NAME_NAME_NOT_ALLOWED_CHARS
   * remove function escape_chars, set-bootloader, create_boot_disk 
 
- -- Torsten Wohlfarth <towo@siduction.org>  Fri, 14 Jul 2023 14:54:01 +0200
+ -- Torsten Wohlfarth <towo@siduction.org>   Fri, 14 Jul 2023 14:54:01 +0200
 
 cli-installer (0.4.4) unstable; urgency=medium
 
