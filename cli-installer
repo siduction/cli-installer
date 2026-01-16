@@ -1,11 +1,10 @@
 #!/usr/bin/bash
 #
-# Copyright  (C) 2023-2025 Axel Konrad <ak-li@siduction.org>
+# Copyright  (C) 2023-2026 Axel Konrad <ak-li@siduction.org>
 #                2012-2013 Alf Gaida <agaida@siduction.org>
 #                2012      Sebastian Görgen <zeppo@siduction.net>
 #                2009-2010 Nikolas Poniros <edhunter@sidux.com>
 #
-# 
 # heavily based on install-gui written by
 #	Horst Tritremmel <hjt@users.berlios.de>
 #
@@ -27,7 +26,6 @@
 # On Debian GNU/Linux systems, the text of the GPL license can be
 # found in /usr/share/common-licenses/GPL.
 #
-# version: 0.2.9
 #-----------------------------------------------------------------------
 
 # Short description of the script:
@@ -94,6 +92,7 @@ fi
 #	/usr/bin/setupcon tty
 #fi
 
+
 ### DEFINE CONSTANTS ###
 #-----------------------------------------------------------------------
 CONFIG_FILE="$HOME/.sidconf"
@@ -145,7 +144,6 @@ fi
 
 ### VARIABLES NEEDED BY THE CONFIG FILE
 #-----------------------------------------------------------------------
-
 FORMAT_HD="yes"
 FILESYSTEM=""
 ROOT_PARTITION=""
@@ -153,6 +151,7 @@ MOUNT_POINT_LIST=""
 IGNORE_DISK_SPACE="no"
 AUTO_SWAP="yes"
 SWAP_LIST=""
+NONFREE_SOURCES="no"
 REAL_NAME=""
 USERNAME=""
 USERPASS=""
@@ -166,10 +165,10 @@ AUTOMOUNT_BOOT="yes"
 
 # make sure that if ctrl+C is pushed, the config file and the temporary files are removed
 # same for SIGTERM
-#trap "rm -f '$CONFIG_FILE'; rm -f '$PARTITIONS_LIST'; rm -f '$PARTITIONS_LIST_2'; /usr/bin/setupcon; clear; exit 2" $SIGINT $SIGTERM
 trap "rm -f '$CONFIG_FILE'; rm -f '$PARTITIONS_LIST'; rm -f '$PARTITIONS_LIST_2'; clear; exit 2" $SIGINT $SIGTERM
 
-### GENERAL PURPOSE FUNCTIONS
+
+### SSFT PURPOSE FUNCTIONS
 #-----------------------------------------------------------------------
 # Function to call ssft_yesno
 # $1 is the title for ssft_yesno
@@ -186,7 +185,7 @@ yesno() {
 # Be carefull of the exit_code used! Use exit_code = 2 if you dont want
 # the config to be deleted
 error_msg() {
-	title="ERROR"
+	title="  ERROR  "
 	msg="$1"
 	msg="$msg $ERROR_LOG might contain more information"
 	exit_code="$2"
@@ -237,7 +236,7 @@ select_one() {
 # $1 is the message displayed for ssft_read_password
 # returns the exit code of ssft_read_password
 input_pass() {
-	ssft_read_password "Input Password" "$1"
+	ssft_read_password "  Input Password  " "$1"
 	return "$?"
 }
 
@@ -248,6 +247,112 @@ input_pass() {
 input_string() {
 	ssft_read_string "$1" "$2"
 	return "$?"
+}
+
+### GENARAL PURPOSE FUNCTIONS
+#-----------------------------------------------------------------------
+# Function to call cfdisk_wrapper to format the hard disk
+format_disk() {
+	title="  Format disk  "
+	msg="Do you want to partition your hard disk?"
+	if yesno "$title" "$msg"; then
+		msg="Please choose a partitioning program. Available programs are:"
+		programs_list="cfdisk fdisk parted"
+		SSFT_DEFAULT="$PARTITION_PROG"
+		if select_one "$title" "$msg" $programs_list; then
+			PARTITION_PROG="$SSFT_RESULT"
+			msg="Please choose a disk to partition. Available disks are:"
+			partition_list=$(/usr/share/fll-installer-common/disk -d 2>/dev/null)
+			if select_more "$title" "$msg" $partition_list; then
+			check_for_mounted_disks "1"
+				for disk in $SSFT_RESULT ; do
+					/usr/share/fll-installer-common/cfdisk_wrapper "$PARTITION_PROG" "$disk"
+				done
+			fi
+		fi
+	else
+		msg="You have chosen not to partition your hard disk
+			If you have not at least one partition on the disk
+			the installer will not be able to complete the installation
+			If you do not have a partition please abort now!
+
+			Press ctrl+C to abort or ENTER to continue"
+		display_msg "$title" "$msg"
+	fi
+}
+
+# Function for timezone selection
+set_timezone() {
+	#initialTZ="$(cat /etc/timezone)"
+	title="  Timezone selection  "
+	msg="Current timezone is: $(cat /etc/timezone)
+
+		Do you want to change the timezone?"
+	if yesno "$title" "$msg"; then
+		dpkg-reconfigure tzdata
+	else
+		display_msg "$title" "Keeping current timezone"
+	fi
+}
+
+# Internet connection test.
+check_con() {
+	if $(ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"); then
+		INETCON="true"
+	else
+		INETCON="false"
+		title="  Internet connection  "
+		msg="I: No Internet connection!
+		
+		Would you like to set up a connection?"
+		if yesno "$title" "$msg"; then
+			clear
+			/usr/bin/nmtui
+			if $(ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"); then
+			INETCON="true"
+			fi
+		fi
+	fi
+clear
+}
+
+# Function that asks the user whether to enable non-free sources.
+non_free_sources() {
+	title="  Additional non-free sources  "
+	msg="Would you also like to use 'non-free' sources?
+
+Default is 'no'.
+
+I: This allows you to install non-free drivers (like nvidia) or proprietary software. It adds 'contrib' and 'non-free' to your software sources.
+This means that you diviate from the debian dfsg guidelines."
+
+	if yesno "$title" "$msg"; then
+		dir_pre="$(pwd)"
+		cd /etc/apt/sources.list.d/
+		
+		for sourcefile in debian.sources extra.sources fixes.sources; do
+			if grep -q "non-free " "$sourcefile"; then
+				continue
+			else
+				sed -i /Components/'s/main/main contrib non-free/' "$sourcefile"
+			fi
+		done
+		
+		if ! grep -q "non-free " dbgsym.sources; then
+			sed -i /Components/'s/contrib/contrib non-free/' dbgsym.sources
+		fi
+		cd "$dir_pre"
+		
+		# Synchronize the package index files from their sources.
+		if [ "$INETCON" = "true" ]; then
+			display_msg "$title" "Now the package index files are synchronized from their sources."
+			clear
+			/usr/bin/apt update
+		else
+			display_msg "$title" "E: No internet connection.
+			Can't update the package index files from their sources."
+		fi
+	fi
 }
 
 # Function to check the length of a string
@@ -261,7 +366,7 @@ length_check() {
 	type="$2"
 	is_pass="$3"
 	num="$4"
-	title="$5"
+	title="  $5  "
 	if [ "$is_pass" = "yes" ]; then
 		while [ "${#string}" -lt 6 ]; do
 			msg="The password is too short!
@@ -334,7 +439,7 @@ check_for_mounted_disks() {
 	exit_status="$?"
 
 	if [ "$exit_status" -eq 1 ]; then
-	title="Unmount Partitions"
+	title="  Unmount Partitions  "
 	msg="Some partitions are still mounted.
 		You need to unmount them for the installer to continue.
 
@@ -412,55 +517,11 @@ home_exists() {
 	done
 }
 
-# Function to call cfdisk_wrapper to format the hard disk
-format_disk() {
-	title="Format disk"
-	msg="Do you want to partition your hard disk?"
-	if yesno "$title" "$msg"; then
-		msg="Please choose a partitioning program. Available programs are:"
-		programs_list="cfdisk fdisk parted"
-		SSFT_DEFAULT="$PARTITION_PROG"
-		if select_one "$title" "$msg" $programs_list; then
-			PARTITION_PROG="$SSFT_RESULT"
-			msg="Please choose a disk to partition. Available disks are:"
-			partition_list=$(/usr/share/fll-installer-common/disk -d 2>/dev/null)
-			if select_more "$title" "$msg" $partition_list; then
-			check_for_mounted_disks "1"
-				for disk in $SSFT_RESULT ; do
-					/usr/share/fll-installer-common/cfdisk_wrapper "$PARTITION_PROG" "$disk"
-				done
-			fi
-		fi
-	else
-		msg="You have chosen not to partition your hard disk
-			If you have not at least one partition on the disk
-			the installer will not be able to complete the installation
-			If you do not have a partition please abort now!
-
-			Press ctrl+C to abort or ENTER to continue"
-		display_msg "$title" "$msg"
-	fi
-}
-
-# Function for timezone selection
-set_timezone() {
-	#initialTZ="$(cat /etc/timezone)"
-	title="Timezone selection"
-	msg="Current timezone is: $(cat /etc/timezone)
-
-		Do you want to change the timezone?"
-	if yesno "$title" "$msg"; then
-	    dpkg-reconfigure tzdata
-	else
-		display_msg "$title" "Keeping current timezone"
-	fi
-}
-
 # Function where the user can enter a root partition in case
 # the script didnt detect any partitions or the correct partition
 custom_root() {
 	#give the user the option to manually set a root partition in case no partitions were found
-	title="Partitioning"
+	title="  Partitioning  "
 	msg="No partitions were detected by the installer. Do you want to manually set a partion?"
 	if yesno "$title" "$msg"; then
 		msg="Please input a root partition."
@@ -515,14 +576,13 @@ custom_root() {
 	fi
 }
 
-
 ### FUNCTIONS TO GET THE VALUES FOR THE VARIABLES
 ### THAT WILL BE PASSED LATER TO THE CONFIG FILE
 #-----------------------------------------------------------------------
 
 # Only for root partition
 format_root() {
-	title="Format hard disk"
+	title="  Format hard disk  "
 	msg="Do you want the installer to format your root partition?"
 	if yesno "$title" "$msg"; then
 		msg="Select the file system to format your root partition with."
@@ -534,7 +594,7 @@ format_root() {
 
 # Only for root partition
 select_fs() {
-	title="Filesystem selection"
+	title="  Filesystem selection  "
 	msg="$1"
 	options="ext4 ext2 btrfs xfs"
 	if select_one "$title" "$msg" $options; then
@@ -549,7 +609,7 @@ choose_root() {
 # Create a list of available partitions
 # and add those into the temp file (update partitions after partitioning)
 /usr/share/fll-installer-common/disk -p 2>/dev/null > "$PARTITIONS_LIST"
-	title="Install Partition"
+	title="  Install Partition  "
 	msg="Choose a partition to install siduction onto.
 		Available partitions are:"
 	if select_one "$title" "$msg" $(cat "$PARTITIONS_LIST" | \
@@ -610,7 +670,7 @@ check_efi() {
 		send_msg="true"
 		msg1="The partition type is not set to EFI System."
 	elif [ ! "$(lsblk -n -o FSTYPE -n "$partition")" = "vfat" ]; then
-		title="ESP format is incorrect"
+		title="  ESP format is incorrect  "
 		msg="The format for the ESP must be vfat.
 
 Q: Do you want the program to format $partition?
@@ -627,7 +687,7 @@ VERY IMPORTANT WARNING!
 	fi
 
 	if [ "$send_msg" = "true" ]; then
-		title="$partition cannot be ESP"
+		title="  $partition cannot be ESP  "
 		msg="$msg1
 		
 		What would you like to do?"
@@ -683,7 +743,7 @@ remove_part_point() {
 
 mount_points() {
 	echo >> /root/eficontrol
-	title="Set mount points"
+	title="  Set mount points  "
 	msg="Do you want to set mount points for other partitions?
 
 W: The partitions need to be already formated
@@ -702,8 +762,7 @@ and you should not set it again"
 	# We set the available mount points before the loop starts.
 
 set_mount_points() {
-	title="Set mount points"
-#	available_mnt_points="home boot boot/efi efi opt root tmp usr var"
+	title="  Set mount points  "
 	available_mnt_points="home boot boot/efi opt root tmp usr var"
 	while [ -n "$(cat "$PARTITIONS_LIST")" ]; do
 		msg="Choose a partition to set its mount point.
@@ -801,7 +860,7 @@ set_mount_points() {
 # auto-mounted on boot
 # default is yes
 auto_mount_partitions() {
-	title="Automount other partitions"
+	title="  Automount other partitions  "
 	msg="Would you like all other partitions to be
 	mounted automatically during bootup
 	in addition to those already specified?
@@ -817,7 +876,7 @@ auto_mount_partitions() {
 # enough space on the partition
 ### Currently unavailable
 ignore_disk_space() {
-	title="Check for space"
+	title="  Check for space  "
 	msg="Do you want the program NOT to check if there is enough space to install siduction?
 		If you don't know what this means please choose 'no'"
 	if yesno "$title" "$msg"; then
@@ -826,7 +885,7 @@ ignore_disk_space() {
 }
 
 auto_detect_swap() {
-	title="Swap autodetect"
+	title="  Swap autodetect  "
 	msg="Do you want the installer to autodetect swap?"
 	if ! yesno "$title" "$msg"; then
 		AUTO_SWAP="no"
@@ -835,7 +894,7 @@ auto_detect_swap() {
 
 select_swap() {
 	if [ -s "$SWAP_PART_LIST" ]; then
-		title="Select swap"
+		title="  Select swap  "
 		msg="Select the partitions you want to be used as swap by the installer"
 		if select_more "$title" "$msg" $(cat "$SWAP_PART_LIST"); then
 			# ssft returns a list with \n in it. Change it to " " and also use
@@ -843,18 +902,17 @@ select_swap() {
 			SWAP_LIST="$(echo "$SSFT_RESULT" | tr '\n' ' ' | sed 's/ $//' )"
 		fi
 	else
-		title="Select swap"
+		title="  Select swap  "
 		msg="You have no swap partitions. Nothing to select"
 		display_msg "$title" "$msg"
 	fi
 }
-
 input_real_name() {
-	title="Input Real Name"
+	title="  Input Real Name  "
 	msg="Please enter your real name"
 
 	while ! input_string "$title" "$msg"; do
-		if yesno "No real name" "Continue without real name?"; then
+		if yesno "  No real name  " "Continue without real name?"; then
 			printf "%s\n" "OK, no real name"
 			return 0
 		else
@@ -867,7 +925,7 @@ input_real_name() {
 	name="${SSFT_RESULT}"
 	# Make sure that name contains only valid characters
 	while [ -n "$( echo "$name" | grep "[$NAME_NAME_NOT_ALLOWED_CHARS]" )" ]; do
-		title="Real Name, not allowed Characters"
+		title="  Real Name, not allowed Characters  "
 		msg="Your input contains characters which are not allowed
 			Characters which are not allowed are:
 
@@ -884,7 +942,7 @@ input_real_name() {
 }
 
 input_username() {
-	title="Input username"
+	title="  Input username  "
 	msg="Please input your username"
 
 	if input_string "$title" "$msg"; then
@@ -894,7 +952,7 @@ input_username() {
 	length_check "$USERNAME" "username" "no" "1" "$title"
 
 	while [ ! $(echo "$USERNAME" | grep "^[$USERNAME_ALLOWED_CHARS]*$") ]; do
-		title="Input username"
+		title="  Input username  "
 		msg="Username contains characters which are not allowed
 			Allowed characters are:
 
@@ -962,7 +1020,7 @@ I: Do not use a minus (-) as the first character of the password,
 }
 
 input_hostname() {
-	title="Input hostname"
+	title="  Input hostname  "
 	msg="Please input hostname"
 	SSFT_DEFAULT="$HOST_NAME"
 	if input_string "$title" "$msg"; then
@@ -972,7 +1030,6 @@ input_hostname() {
 	length_check "$HOST_NAME" "hostname" "no" "0" "$title"
 
 	while [ ! $(echo "$HOST_NAME" | grep "^[$HOSTNAME_ALLOWED_CHARS][$HOSTNAME_ALLOWED_CHARS$HOSTNAME_ALLOWED_CHAR_OTHERS]*$") ]; do
-		title="Input hostname"
 		msg="Hostname contains characters which are not allowed!
 			Allowed characters are:
 
@@ -995,7 +1052,7 @@ input_hostname() {
 # Function so that the user can input some services that should
 # start during boot
 input_services() {
-	title="Services"
+	title="  Services  "
 	msg="Select the services you want to start on boot"
 	#services="cups smail ssh samba"
 	services="ssh"
@@ -1008,7 +1065,7 @@ input_services() {
 
 # Ask the user where he wants to place the boot-loader mbr or partition
 place_boot_loader() {
-	title="Bootloader"
+	title="  Bootloader  "
 	msg="Where do you want the boot-loader to be installed?"
 	options="ESP MBR Partition"
 	if select_one "$title" "$msg" $options; then
@@ -1160,6 +1217,10 @@ format_disk
 
 set_timezone
 
+check_con
+
+non_free_sources
+
 format_root
 
 if [ -z "$ROOT_PARTITION" ]; then
@@ -1210,7 +1271,7 @@ fi
 
 write_config
 
-display_msg "cli-installer" "Finished creating configuration file"
+display_msg "  cli-installer  " "Finished creating configuration file"
 
 
 # remove the temporary file with the partition list
@@ -1226,7 +1287,7 @@ if [ "$SSFT_FRONTEND" = "dialog" ]; then
 fi
 
 ### CALL INSTALLER
-title="Call Installer"
+title="  Call Installer  "
 msg="Finished all checks.
 Do you want to start the installation?
 I: If you choose 'no' the configuration file will stay in $CONFIG_FILE!"

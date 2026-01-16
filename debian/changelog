@@ -1,3 +1,14 @@
+cli-installer (0.5.5) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Add funktion check_con
+    - Add funktion non_free_sources
+    - Fix space for title in dialog
+  * nonfree moved to 'obsolet'
+
+ -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026
+
 cli-installer (0.5.4) unstable; urgency=medium
 
   [ Axel Konrad ]

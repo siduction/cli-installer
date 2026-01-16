@@ -4,6 +4,5 @@ scripts/check_existing_home     usr/share/fll-installer-common
 scripts/disk                    usr/share/fll-installer-common 
 scripts/fw-install              usr/share/fll-installer-common 
 scripts/fw-install-exec         usr/share/fll-installer-common 
-scripts/nonfree                 usr/share/fll-installer-common 
 scripts/um_all                  usr/share/fll-installer-common 
 man/cli-installer.8.gz          usr/share/man/man8
