@@ -1,13 +1,29 @@
+cli-installer (0.5.6) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Added input_boot_loader funktion with the choice of
+      GRUB or systemd-boot.
+    - Added remove_part_point funktion.
+    - Added check_efi funktion.
+    - Added functions for determining the properties of
+      hard disks and partitions.
+    - Modify the home_exists function for direct use in the
+      cli-installer script. This prevents a cumulative loop.
+  * Moved check_existing_home script to 'obsolet'.
+
+ -- Axel Konrad <ak-li@siduction.org> Wed, 28 Jan 2026 17:08:42 +0200
+
 cli-installer (0.5.5) unstable; urgency=medium
 
   [ Axel Konrad ]
   * cli-installer
-    - Add funktion check_con
-    - Add funktion non_free_sources
+    - Added check_con funktion
+    - Added non_free_sources funktion
     - Fix space for title in dialog
   * nonfree moved to 'obsolet'
 
- -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026
+ -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026 19:26:31 +0200
 
 cli-installer (0.5.4) unstable; urgency=medium
 
