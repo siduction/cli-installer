@@ -152,7 +152,7 @@ XBOOT_UUID="bc13c2ff-59e6-4262-a352-b275fd6f7172"
 PART_LIST=$(/usr/share/fll-installer-common/disk -p 2>/dev/null \
 				| grep -v ",swap," | cut -d "," -f1)
 SWAP_PART_LIST=$(blkid -t TYPE=swap -o device | sort)
-MNT_POINTS="home boot boot/efi opt root tmp usr var "
+MNT_POINTS="boot boot/efi efi home opt root tmp usr var "
 
 
 ### VARIABLES NEEDED BY THE CONFIG FILE
@@ -161,7 +161,7 @@ FORMAT_HD="yes"
 FILESYSTEM=""
 ROOT_PARTITION=""
 MOUNT_POINT_LIST=""
-IGNORE_DISK_SPACE="no"
+IGNORE_DISK_SPACE="yes"
 AUTO_SWAP="yes"
 SWAP_LIST=""
 REAL_NAME=""
@@ -173,7 +173,7 @@ HOST_NAME="siductionbox"
 SERVICES_LIST=""
 BOOT_LOADER="grub"
 BOOT_WHERE=""
-AUTOMOUNT_BOOT="yes"
+AUTOMOUNT_BOOT="no"
 
 
 ### SSFT PURPOSE FUNCTIONS
@@ -335,8 +335,11 @@ Default is 'no'.
 
 I: This allows you to install non-free drivers (like nvidia) or proprietary software. It adds 'contrib' and 'non-free' to your software sources.
 This means that you diviate from the debian dfsg guidelines."
+	options="no yes"
+	SSFT_DEFAULT="no"
 
-	if yesno "$title" "$msg"; then
+	select_one "$title" "$msg" $options
+	if [ "$SSFT_RESULT" = "yes" ]; then
 		dir_pre="$(pwd)"
 		cd /etc/apt/sources.list.d/ || exit 1
 		
@@ -355,9 +358,12 @@ This means that you diviate from the debian dfsg guidelines."
 		
 		# Synchronize the package index files from their sources.
 		if [ "$INETCON" = "true" ]; then
-			display_msg "$title" "Now the package index files are synchronized from their sources."
+			display_msg "$title" " Now the package index files
+									are synchronized from
+									their sources."
 			clear
 			/usr/bin/apt update
+			sleep 2
 		else
 			display_msg "$title" "E: No internet connection.
 			Can't update the package index files from their sources."
@@ -491,16 +497,16 @@ check_for_mounted_disks() {
 }
 
 # Functions for determining the properties of hard disks and partitions.
-check_esp() {
+check_gpt() {
 	result="no"
-	if [ "$(lsblk -n -o PARTTYPE "$1")" = "$ESP_UUID" ] ; then
+	if [ "$(lsblk -n -o PTTYPE "$1")" = "gpt" ] ; then
 		result="ok"
 	fi
 }
 
-check_xboot() {
+check_esp() {
 	result="no"
-	if [ "$(lsblk -n -o PARTTYPE "$1")" = "$XBOOT_UUID" ] ; then
+	if [ "$(lsblk -n -o PARTTYPE "$1")" = "$ESP_UUID" ] ; then
 		result="ok"
 	fi
 }
@@ -578,6 +584,30 @@ check_efi() {
 	fi
 }
 
+# The function checks whether the selected partition can be used as an XBOOTLDR.
+check_xboot() {
+	local partition="$1"
+
+	result="no"
+	if [ "$(lsblk -n -o PARTTYPE "$partition")" = "$XBOOT_UUID" ] ; then
+		if check_vfat "$partition" && [ "$result" = "no" ]; then
+			title="  XBOOTLDR format is incorrect  "
+			msg=" The format for the XBOOTLDR must be vfat.
+
+				Q: Do you want the program to format $partition?
+
+				VERY IMPORTANT WARNING!
+				This will destroy all data on $partition!"
+			if yesno "$title" "$msg"; then
+				mkfs.vfat "$partition" &>/dev/null
+				result="ok"
+			fi
+		else
+			result="ok"
+		fi
+	fi
+}
+
 remove_part_point() {
 	# Remove the partition name $p_name from the list
 	if [ -n "$1" ]; then
@@ -625,9 +655,38 @@ select_fs() {
 		display_msg "$title" "$msg"
 	fi
 
+	# If the user selects btrfs we have some work to do.
 	# Reduce list of available mount points.
 	if [ "$FILESYSTEM" = "btrfs" ]; then
 		MNT_POINTS="boot boot/efi efi "
+		
+		# Install Snapper and siduction-btrfs
+		display_msg "$title" " Your selection is btrfs.
+						Packages Snapper and siduction-btrfs 
+						will now be installed. "
+		clear
+		local pkg_path="/usr/share/siduction/btrfs-packages"
+		if ! /usr/bin/apt install \
+			$pkg_path/snapper_* \
+			$pkg_path/libsnapper* \
+			$pkg_path/siduction-btrfs* \
+			$pkg_path/libbtrfs* \
+			$pkg_path/libboost-thread*;
+		then
+			display_msg "$title" "E: Can't install Snapper and siduction-btrfs.
+			You will need to do this after the system installation."
+			return
+		fi
+		sleep 2
+		# Snapper basic configuration
+		cp /usr/share/snapper/config-templates/default /etc/snapper/configs/root
+		sed -i '/SNAPPER_CONFIGS/s/""/"root"/' /etc/default/snapper
+		
+		# For the systemd units we need a file with the name
+		# of the file system type of the root directory.
+		local fstypename="/usr/share/siduction/btrfs"
+		echo "DO NOT REMOVE THIS FILE!" > "$fstypename"
+		echo "It is required by the siduction_btrfs systemd units." >> "$fstypename"
 	fi
 }
 
@@ -724,9 +783,11 @@ input_boot_loader() {
 	- UEFI hardware
 	- GPT partition table
 	- The following partitions must be on the same disk.
-	-- ESP, first partition, vfat, mountpoint /efi
-	-- XBOOTLDR, at least 1G, mountpoint /boot
-	-- OS partition, mountpoint /"
+	-- ESP, first partition, vfat file system
+	-- OS partition, mountpoint /
+	-- Optional:
+	-- XBOOTLDR, at least 1 GB, vfat file system
+	-- (recommended for dual-boot with Windows)"
 	options="GRUB systemd-boot"
 	SSFT_DEFAULT="GRUB"
 	if select_one "$title" "$msg" $options; then
@@ -739,21 +800,53 @@ input_boot_loader() {
 			display_msg "$title" "$msg"
 			msg=""
 			
+			# GPT partition table?
 			if check_gpt "$ROOT_PARTITION" = 0; then
 				
-				# 1) ESP
+				# 1) XBOOTLDR
+				found="$(lsblk -n -o PATH -Q 'PARTTYPE=="'"$XBOOT_UUID"'"')"
+				found_xboot=""
+				part_pick
+				
+				if [ -n "$found" ]; then
+					check_xboot "$found"
+					if [ "$result" = "ok" ]; then
+						found_xboot="$found"
+					fi
+					title="  Bootloader  "
+				fi
+				
+				# 2) ESP
 				found="$(lsblk -n -o PATH -Q 'PARTTYPE=="'"$ESP_UUID"'"')"
 				mnt_point=""
 				part_pick
 				
 				if [ -n "$found" ]; then
-					mnt_point="efi"
-					
 					# Check the ESP
 					check_efi "$found"
 					if [ "$efi_result" -eq "0" ]; then
-						MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/$mnt_point "
-						remove_part_point "$found"
+						if [ -n "$found_xboot" ]; then
+							# ESP and XBOOTLDR
+							# mount ESP on /efi and XBOOTLDR on /boot
+							mnt_point="efi"
+							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/$mnt_point "
+							remove_part_point "$found"
+							mnt_point="boot"
+							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found_xboot:/$mnt_point "
+							remove_part_point "$found_xboot"
+							msg=" SUCCESS 
+								Use ESP, mounted at /efi
+								and
+								XBOOTLDR, mounted at /boot"
+						else
+							# ESP only, mount at /boot
+							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/boot "
+							remove_part_point "$found"
+							msg=" SUCCESS 
+								Use ESP, mounted at /boot"
+						fi
+						MNT_POINTS="home opt root tmp usr var "
+						BOOT_WHERE="ESP"
 					else
 					# Error with the properties of the ESP.
 						eval msg=\$msg_ch_efi_$efi_result
@@ -781,45 +874,20 @@ input_boot_loader() {
 					fi
 				else
 					BOOT_LOADER="GRUB"
-					msg=" ERROR: No ESP found.
+					part_name "$ROOT_PARTITION"
+					msg=" ERROR: No ESP found on $d_name.
 						Switch to the GRUB boot manager."
-				fi
-				
-				# 2) XBOOTLDR
-				if [ "$BOOT_LOADER" = "systemd-boot" ]; then
-					found="$(lsblk -n -o PATH -Q 'PARTTYPE=="'"$XBOOT_UUID"'"')"
-					mnt_point=""
-					part_pick
-					
-					if [ -n "$found" ] && check_xboot "$found" = 0; then
-						mnt_point="boot"
-						MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/$mnt_point "
-						remove_part_point "$found"
-					else
-					# ESP is ok. No useable XBOOTLDR partition.
-					# Reset MNT_POINTS, MOUNT_POINT_LIST and PART_LIST
-					# Switch to GRUB
-						MNT_POINTS="home boot boot/efi opt root tmp usr var "
-						MOUNT_POINT_LIST=""
-						PART_LIST=$(/usr/share/fll-installer-common/disk -p 2>/dev/null \
-							| grep -v ",swap," | cut -d "," -f1)
-						BOOT_LOADER="GRUB"
-						msg=" ERROR: No XBOOTLDR partition found.
-							Switch to the GRUB boot manager."
-					fi
 				fi
 			else
 				BOOT_LOADER="GRUB"
 				msg=" ERROR: No Globally Unique Identifier Partition Table (GPT) on the HD.
 					Switch to the GRUB boot manager."
 			fi
-			
-			if [ ! -n "$msg" ]; then
-				BOOT_WHERE="ESP"
-				msg=" SUCCESS"
-			fi
 			display_msg "$title" "$msg"
 		fi
+	else
+		msg=" cli-installer canceled in input_boot_loader"
+		error_msg "$msg" 1
 	fi
 }
 
@@ -833,9 +901,11 @@ place_boot_loader() {
 		BOOT_WHERE="Partition"
 		return 0
 	else
+		part_name "$ROOT_PARTITION"
 		title="  Bootloader  "
 		msg=" Where do you want the boot-loader to be installed?"
 		options="ESP MBR Partition"
+		SSFT_DEFAULT="ESP"
 		if select_one "$title" "$msg" $options; then
 			BOOT_WHERE="$SSFT_RESULT"
 			
@@ -844,33 +914,80 @@ place_boot_loader() {
 			# The switch to mbr is a fallback in case the user's
 			# specification is incorrect.
 			if [ "$BOOT_WHERE" = "ESP" ]; then
-				msg=" Please select a partition to be used as ESP.
-					The 'Set mount points' dialog shows up.
-					
-					I:
-					- The ESP must be the first partition on the hard disk
-					- The partition type must be ‘EFI System’
-					- The file system must be formatted with vfat (fat16 or fat32)."
-				display_msg "$title" "$msg"
-				from_extern="yes"
-				set_mount_points
-				# Output the result.
-				title="  Bootloader  "
-				if  grep -q ":/boot/efi " <<< "$MOUNT_POINT_LIST"; then
-					msg=" GRUB will be installed into $partition mounted at /boot/efi."
-				else
-					part_name "$ROOT_PARTITION"
-					msg=" No ESP was specified.
-						GRUB will be installed into the MBR of $d_name."
-				fi
-				display_msg "$title" "$msg"
+				found="$(lsblk -n -o PATH -Q 'PARTTYPE=="'"$ESP_UUID"'"')"
+				mnt_point="boot/efi"
+				while [ -n "$found" ]; do
+					title="  Bootloader  "
+					msg=" Please select a partition to be used as ESP. "
+					if select_one "$title" "$msg" $found; then
+						partition="$SSFT_RESULT"
+						check_efi "$partition"
+						case "$efi_result" in
+							0)
+							# An useable ESP!
+							# The space at the end is absolutely necessary.
+							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$partition:/$mnt_point "
+							remove_part_point "$partition"
+							clear && break
+							;;
+							*)
+							# Partition not useable as ESP.
+							# Take the message that correspond to the check_efi result.
+							eval msg=\$msg_ch_efi_$efi_result
+							title="  $partition cannot be ESP  "
+							msg="$msg
+								
+								What would you like to do?"
+							options=" Repeat_selection \
+									Fallback_to_MBR \
+									Cancel_the_cli-installer"
+							SSFT_DEFAULT="Repeat_selection"
+							select_one "$title" "$msg" "$options"
+							case "$SSFT_RESULT" in
+								Repeat_selection)
+								msg=" $partition cannot be ESP
+									Select another partition."
+								found=$(sed -E "s|$SSFT_RESULT ?||" <<< "$found")
+								continue
+								;;
+								Fallback_to_MBR)
+								BOOT_WHERE="MBR"
+								remove_part_point
+								clear && break
+								;;
+								Cancel_the_cli-installer)
+								msg="cli-installer due to unusable ESP canceled"
+								error_msg "$msg" 1
+								;;
+							esac
+							;;
+						esac
+					else
+						msg="cli-installer canceled in the place_boot_loader, select ESP"
+						error_msg "$msg" 1
+					fi
+				done
 			fi
-			
-			if [ "$BOOT_WHERE" = "MBR" ]; then
-				mnt_point="efi"
-				remove_part_point
-				mnt_point=""
-			fi
+			# Output the result.
+			title="  Bootloader  "
+			case "$BOOT_WHERE" in
+				ESP)
+				msg=" GRUB will be installed into ESP $partition
+				 mounted at /boot/efi."
+				;;
+				MBR)
+				msg=" GRUB will be installed into the MBR of $d_name."
+				;;
+				Partition)
+				msg=" GRUB will be installed into the root partition $p_name."
+				;;
+				*)
+				;;
+			esac
+			display_msg "$title" "$msg"
+		else
+			msg="cli-installer canceled in place_boot_loader"
+			error_msg "$msg" 1
 		fi
 	fi
 }
@@ -926,43 +1043,6 @@ set_mount_points() {
 				remove_part_point "$partition"
 				;;
 				boot/efi)
-				check_efi "$partition"
-				case "$efi_result" in
-					0)
-					# An useable ESP!
-					# The space at the end is absolutely necessary.
-					MOUNT_POINT_LIST="$MOUNT_POINT_LIST$partition:/$mnt_point "
-					remove_part_point "$partition"
-					;;
-					*)
-					# Partition not useable as ESP.
-					# Take the message that correspond to the check_efi result.
-					eval msg=\$msg_ch_efi_$efi_result
-					title="  $partition cannot be ESP  "
-					msg="$msg
-						
-						What would you like to do?"
-					options="Return_to_the_partition_selection_dialog \
-							Fallback_to_MBR \
-							Cancel_the_cli-installer"
-					SSFT_DEFAULT="Return_to_the_partition_selection_dialog"
-					select_one "$title" "$msg" "$options"
-					case "$SSFT_RESULT" in
-						Return_to_the_partition_selection_dialog)
-						msg=" $partition cannot be ESP
-							Select another partition."
-						continue
-						;;
-						Fallback_to_MBR)
-						BOOT_WHERE="MBR"
-						;;
-						Cancel_the_cli-installer)
-						msg="cli-installer due to unusable ESP canceled"
-						error_msg "$msg" 1
-						;;
-					esac
-					;;
-				esac
 				;;
 				*)
 				# The space at the end is absolutely necessary.
@@ -989,16 +1069,21 @@ set_mount_points() {
 
 # Function to ask the user if he wants the partitions to be
 # auto-mounted on boot
-# default is yes
+# default is no
 auto_mount_partitions() {
 	title="  Automount other partitions  "
-	msg="Would you like all other partitions to be
+	msg=" Would you like all other partitions to be
 	mounted automatically during bootup
 	in addition to those already specified?
 
 	I: The mount points follow the pattern
 	'/disks/sda4' or '/disks/nvme0n1p4'"
-	if ! yesno "$title" "$msg"; then
+	
+	SSFT_DEFAULT="no"
+	options="no yes"
+	if select_one "$title" "$msg" "$options"; then
+		AUTOMOUNT_BOOT="SSFT_RESULT"
+	else
 		AUTOMOUNT_BOOT="no"
 	fi
 }
@@ -1147,13 +1232,6 @@ home_exists() {
 	done
 }
 
-# Functions for determining the properties of the partitions.
-check_gpt() {
-	result="no"
-	if [ "$(lsblk -n -o PTTYPE "$1")" = "gpt" ] ; then
-		result="ok"
-	fi
-}
 input_user_pass() {
 	msg="Enter a user password. Will not be echoed
 
@@ -1284,7 +1362,7 @@ write_config() {
 
 	echo "# If set to yes, the program will NOT check if there is enough space to install siduction on the selected partition(s). Use at your own risk! Useful for example with HD_MAP if you only have a small root partition." >> "$CONFIG_FILE"
 	echo "# Possible are: yes|no" >> "$CONFIG_FILE"
-	echo "# Default value is: no" >> "$CONFIG_FILE"
+	echo "# Default value is: yes" >> "$CONFIG_FILE"
 	echo "HD_IGNORECHECK=$IGNORE_DISK_SPACE" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
@@ -1350,7 +1428,7 @@ write_config() {
 
 	echo "# Mount partitions on boot." >> "$CONFIG_FILE"
 	echo "# Possible are: yes|no" >> "$CONFIG_FILE"
-	echo "# Default value is: yes" >> "$CONFIG_FILE"
+	echo "# Default value is: no" >> "$CONFIG_FILE"
 	echo "HD_AUTO=$AUTOMOUNT_BOOT" >> "$CONFIG_FILE"
 	
 	echo "" >> "$CONFIG_FILE"

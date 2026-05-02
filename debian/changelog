@@ -1,3 +1,19 @@
+cli-installer (0.5.7) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Improving funktion input_boot_loader to provide users  with
+      useful solutions. Default value fixed.
+    - Function check_xboot enhanced with a file system test.
+    - Function non_free_sources default value fixed.
+    - Funktion place_boot_loader has been modified based on
+      funktion input_boot_loader.
+    - Function auto_mount_partitions default value fixed.
+  * copyright
+    - Date fixed
+
+ -- Axel Konrad <ak-li@siduction.org>Sat, 02 May 2026 20:00:15 +0200
+
 cli-installer (0.5.6) unstable; urgency=medium
 
   [ Axel Konrad ]
