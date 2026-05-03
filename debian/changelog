@@ -1,3 +1,11 @@
+cli-installer (0.5.7-1) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Typo in auto_mount_partitions fixed.
+
+ -- Axel Konrad <ak-li@siduction.org> Sun, 03 May 2026 15:25:50 +0200
+
 cli-installer (0.5.7) unstable; urgency=medium
 
   [ Axel Konrad ]
@@ -12,7 +20,7 @@ cli-installer (0.5.7) unstable; urgency=medium
   * copyright
     - Date fixed
 
- -- Axel Konrad <ak-li@siduction.org>Sat, 02 May 2026 20:00:15 +0200
+ -- Axel Konrad <ak-li@siduction.org> Sat, 02 May 2026 20:00:15 +0200
 
 cli-installer (0.5.6) unstable; urgency=medium
 

@@ -1082,7 +1082,7 @@ auto_mount_partitions() {
 	SSFT_DEFAULT="no"
 	options="no yes"
 	if select_one "$title" "$msg" "$options"; then
-		AUTOMOUNT_BOOT="SSFT_RESULT"
+		AUTOMOUNT_BOOT="$SSFT_RESULT"
 	else
 		AUTOMOUNT_BOOT="no"
 	fi
