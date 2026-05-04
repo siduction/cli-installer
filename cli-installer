@@ -308,9 +308,9 @@ set_timezone() {
 # Internet connection test.
 check_con() {
 	if ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"; then
-		INETCON="true"
+		CONNECT="yes"
 	else
-		INETCON="false"
+		CONNECT="no"
 		title="  Internet connection  "
 		msg="I: No Internet connection!
 		
@@ -319,8 +319,14 @@ check_con() {
 			clear
 			/usr/bin/nmtui
 			if ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"; then
-			INETCON="true"
+			CONNECT="yes"
 			fi
+		fi
+	fi
+	if [ "$CONNECT" = "no" ]; then
+		msg=" Continue without Internet connection? "
+		if ! yesno "$title" "$msg"; then
+			error_msg "cli-installer canceled in check_con" "1"
 		fi
 	fi
 clear
@@ -357,7 +363,7 @@ This means that you diviate from the debian dfsg guidelines."
 		cd "$dir_pre" || exit 1
 		
 		# Synchronize the package index files from their sources.
-		if [ "$INETCON" = "true" ]; then
+		if [ "$CONNECT" = "yes" ]; then
 			display_msg "$title" " Now the package index files
 									are synchronized from
 									their sources."
@@ -868,7 +874,7 @@ input_boot_loader() {
 							;;
 							*)
 							msg=" cli-installer due to unusable ESP canceled"
-							error_msg "$msg" 1
+							error_msg "$msg" "1"
 							;;
 						esac
 					fi
@@ -887,7 +893,7 @@ input_boot_loader() {
 		fi
 	else
 		msg=" cli-installer canceled in input_boot_loader"
-		error_msg "$msg" 1
+		error_msg "$msg" "1"
 	fi
 }
 
@@ -957,38 +963,48 @@ place_boot_loader() {
 								;;
 								Cancel_the_cli-installer)
 								msg="cli-installer due to unusable ESP canceled"
-								error_msg "$msg" 1
+								error_msg "$msg" "1"
 								;;
 							esac
 							;;
 						esac
 					else
 						msg="cli-installer canceled in the place_boot_loader, select ESP"
-						error_msg "$msg" 1
+						error_msg "$msg" "1"
 					fi
 				done
 			fi
-			# Output the result.
-			title="  Bootloader  "
-			case "$BOOT_WHERE" in
-				ESP)
-				msg=" GRUB will be installed into ESP $partition
-				 mounted at /boot/efi."
-				;;
-				MBR)
-				msg=" GRUB will be installed into the MBR of $d_name."
-				;;
-				Partition)
-				msg=" GRUB will be installed into the root partition $p_name."
-				;;
-				*)
-				;;
-			esac
-			display_msg "$title" "$msg"
 		else
 			msg="cli-installer canceled in place_boot_loader"
-			error_msg "$msg" 1
+			error_msg "$msg" "1"
 		fi
+		
+		# Output the result.
+		title="  Bootloader  "
+		case "$BOOT_WHERE" in
+			ESP)
+			msg=" GRUB will be installed on to ESP $partition
+			 mounted at /boot/efi. "
+			;;
+			MBR)
+			mnt_point="/efi"
+			remove_part_point
+			msg=" GRUB will be installed on to the MBR of $d_name. "
+			;;
+			Partition)
+			mnt_point="/efi"
+			remove_part_point
+			msg=" GRUB will be installed on to the root partition $p_name 
+				or on a partition of your choice
+				that is mounted under /boot. 
+
+				You can make your selection in the next module. "
+			;;
+			*)
+			;;
+		esac
+		display_msg "$title" "$msg"
+		mnt_point=""
 	fi
 }
 
@@ -1326,7 +1342,7 @@ input_services() {
 }
 
 write_config() {
-	echo "REGISTERED=' SYSTEM_MODULE HD_MODULE HD_FORMAT HD_FSTYPE HD_CHOICE HD_MAP HD_IGNORECHECK SWAP_MODULE SWAP_AUTODETECT SWAP_CHOICES NAME_MODULE NAME_NAME USER_MODULE USER_NAME USERPASS_MODULE USERPASS_CRYPT ROOTPASS_MODULE ROOTPASS_CRYPT HOST_MODULE HOST_NAME SERVICES_MODULE SERVICES_START BOOT_MODULE BOOT_LOADER BOOT_WHERE AUTOLOGIN_MODULE INSTALL_READY HD_AUTO'" > "$CONFIG_FILE"
+	echo "REGISTERED=' SYSTEM_MODULE INET_CON HD_MODULE HD_FORMAT HD_FSTYPE HD_CHOICE HD_MAP HD_IGNORECHECK SWAP_MODULE SWAP_AUTODETECT SWAP_CHOICES NAME_MODULE NAME_NAME USER_MODULE USER_NAME USERPASS_MODULE USERPASS_CRYPT ROOTPASS_MODULE ROOTPASS_CRYPT HOST_MODULE HOST_NAME SERVICES_MODULE SERVICES_START BOOT_MODULE BOOT_LOADER BOOT_WHERE AUTOLOGIN_MODULE INSTALL_READY HD_AUTO'" > "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
@@ -1335,17 +1351,24 @@ write_config() {
 
 	echo "" >> "$CONFIG_FILE"
 
+	echo "# Checks if the Internet is available." >> "$CONFIG_FILE"
+	echo "# Allows you to establish a connection if one is not available." >> "$CONFIG_FILE"
+	echo "# Possible are: yes|no" >> "$CONFIG_FILE"
+	echo "INET_CON=$CONNECT" >> "$CONFIG_FILE"
+
+	echo "" >> "$CONFIG_FILE"
+
 	echo "# Determines if the HD should be formatted. (mkfs.*)" >> "$CONFIG_FILE"
 	echo "# Possible are: yes|no" >> "$CONFIG_FILE"
 	echo "# Default value is: yes" >> "$CONFIG_FILE"
-	echo "HD_FORMAT=${FORMAT_HD}" >> "$CONFIG_FILE"
+	echo "HD_FORMAT=$FORMAT_HD" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "# Sets the Filesystem type." >> "$CONFIG_FILE"
 	echo "# Possible are: ext4|ext2|btrfs|xfs" >> "$CONFIG_FILE"
 	echo "# Default value is: ext4" >> "$CONFIG_FILE"
-	echo "HD_FSTYPE=${FILESYSTEM}" >> "$CONFIG_FILE"
+	echo "HD_FSTYPE=$FILESYSTEM" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
@@ -1355,12 +1378,18 @@ write_config() {
 
 	echo "" >> "$CONFIG_FILE"
 
-	echo "# Here you can give additional mappings. (Experimental) You need to have the partitions formatted yourself and give the correct mappings like: '"'/dev/hda4:/boot /dev/hda5:/var /dev/hda6:/tmp'"'" >> "$CONFIG_FILE"
+	echo "# Here you can give additional mappings." >> "$CONFIG_FILE"
+	echo "# You need to have the partitions formatted yourself" >> "$CONFIG_FILE"
+	echo "# and give the correct mappings like:" >> "$CONFIG_FILE"
+	echo "# '"'/dev/hda4:/boot /dev/hda5:/var /dev/hda6:/tmp'"'" >> "$CONFIG_FILE"
 	echo "HD_MAP=\"${MOUNT_POINT_LIST}\"" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
-	echo "# If set to yes, the program will NOT check if there is enough space to install siduction on the selected partition(s). Use at your own risk! Useful for example with HD_MAP if you only have a small root partition." >> "$CONFIG_FILE"
+	echo "# If set to yes, the program will NOT check if there is" >> "$CONFIG_FILE"
+	echo "# enough space to install siduction on the selected partition(s)." >> "$CONFIG_FILE"
+	echo "# Use at your own risk! Useful for example with HD_MAP" >> "$CONFIG_FILE"
+	echo "# if you only have a small root partition." >> "$CONFIG_FILE"
 	echo "# Possible are: yes|no" >> "$CONFIG_FILE"
 	echo "# Default value is: yes" >> "$CONFIG_FILE"
 	echo "HD_IGNORECHECK=$IGNORE_DISK_SPACE" >> "$CONFIG_FILE"

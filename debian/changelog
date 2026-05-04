@@ -1,3 +1,13 @@
+cli-installer (0.5.7-2) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Added INET_CON into the config file.
+    - Remove the mount points ‘/efi’ and ‘/boot/efi’ from the mount point list
+      if the place_boot_loader option is set to ‘MBR’ or ‘Partition’. 
+
+ -- Axel Konrad <ak-li@siduction.org> Mon, 04 May 2026 14:30:40 +0200
+
 cli-installer (0.5.7-1) unstable; urgency=medium
 
   [ Axel Konrad ]
