@@ -1,13 +1,63 @@
+cli-installer (0.5.7-2) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Added INET_CON into the config file.
+    - Remove the mount points ‘/efi’ and ‘/boot/efi’ from the mount point list
+      if the place_boot_loader option is set to ‘MBR’ or ‘Partition’. 
+
+ -- Axel Konrad <ak-li@siduction.org> Mon, 04 May 2026 14:30:40 +0200
+
+cli-installer (0.5.7-1) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Typo in auto_mount_partitions fixed.
+
+ -- Axel Konrad <ak-li@siduction.org> Sun, 03 May 2026 15:25:50 +0200
+
+cli-installer (0.5.7) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Improving funktion input_boot_loader to provide users  with
+      useful solutions. Default value fixed.
+    - Function check_xboot enhanced with a file system test.
+    - Function non_free_sources default value fixed.
+    - Funktion place_boot_loader has been modified based on
+      funktion input_boot_loader.
+    - Function auto_mount_partitions default value fixed.
+  * copyright
+    - Date fixed
+
+ -- Axel Konrad <ak-li@siduction.org> Sat, 02 May 2026 20:00:15 +0200
+
+cli-installer (0.5.6) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Added input_boot_loader funktion with the choice of
+      GRUB or systemd-boot.
+    - Added remove_part_point funktion.
+    - Added check_efi funktion.
+    - Added functions for determining the properties of
+      hard disks and partitions.
+    - Modify the home_exists function for direct use in the
+      cli-installer script. This prevents a cumulative loop.
+  * Moved check_existing_home script to 'obsolet'.
+
+ -- Axel Konrad <ak-li@siduction.org> Wed, 28 Jan 2026 17:08:42 +0200
+
 cli-installer (0.5.5) unstable; urgency=medium
 
   [ Axel Konrad ]
   * cli-installer
-    - Add funktion check_con
-    - Add funktion non_free_sources
+    - Added check_con funktion
+    - Added non_free_sources funktion
     - Fix space for title in dialog
   * nonfree moved to 'obsolet'
 
- -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026
+ -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026 19:26:31 +0200
 
 cli-installer (0.5.4) unstable; urgency=medium
 
