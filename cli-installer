@@ -556,6 +556,7 @@ part_pick() {
 # The function checks whether the selected partition can be used as an ESP.
 check_efi() {
 	local partition="$1"
+	local title_pre="$title"
 
 	if check_gpt "$partition" && [ "$result" = "no" ]; then
 		msg_ch_efi_1=" The device does not have a GUID partition table.
@@ -581,6 +582,7 @@ check_efi() {
 		if yesno "$title" "$msg"; then
 			mkfs.vfat "$partition" &>/dev/null
 			efi_result="0"
+			title="$title_pre"
 		else
 			msg_ch_efi_4=" The file system format is not suitable."
 			efi_result="4"
@@ -1273,7 +1275,7 @@ I: Do not use a minus (-) as the first character of the password,
 }
 
 input_root_pass() {
-	msg="Enter a root password. Will not be echoed
+	msg="Enter a ROOT password. Will not be echoed
 
 I: Do not use a minus (-) as the first character of the password,
 		a space as the last or a backslash (\) anywhere in the password

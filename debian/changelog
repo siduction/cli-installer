@@ -1,3 +1,13 @@
+cli-installer (0.5.7-3) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Title for dialog corrected after the user selected the option
+      to format the ESP.
+    - Module 'input_root_pass': root in uppercase in the text of the message.
+
+ -- Axel Konrad <ak-li@siduction.org> Fri, 08 May 2026 14:27:20 +0200
+
 cli-installer (0.5.7-2) unstable; urgency=medium
 
   [ Axel Konrad ]
