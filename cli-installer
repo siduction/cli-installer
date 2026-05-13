@@ -1376,7 +1376,7 @@ write_config() {
 
 	echo "# Here the siduction-System will be installed" >> "$CONFIG_FILE"
 	echo "# This value will be checked by function module_hd_check" >> "$CONFIG_FILE"
-	echo "HD_CHOICE=${ROOT_PARTITION}" >> "$CONFIG_FILE"
+	echo "HD_CHOICE=$ROOT_PARTITION" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
@@ -1384,7 +1384,7 @@ write_config() {
 	echo "# You need to have the partitions formatted yourself" >> "$CONFIG_FILE"
 	echo "# and give the correct mappings like:" >> "$CONFIG_FILE"
 	echo "# '"'/dev/hda4:/boot /dev/hda5:/var /dev/hda6:/tmp'"'" >> "$CONFIG_FILE"
-	echo "HD_MAP=\"${MOUNT_POINT_LIST}\"" >> "$CONFIG_FILE"
+	echo "HD_MAP=\"$MOUNT_POINT_LIST\"" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
@@ -1407,39 +1407,39 @@ write_config() {
 	echo "" >> "$CONFIG_FILE"
 
 	echo "# The swap partitions to be used by the installed siduction." >> "$CONFIG_FILE"
-	echo "SWAP_CHOICES=\"${SWAP_LIST}\"" >> "$CONFIG_FILE"
+	echo "SWAP_CHOICES=\"$SWAP_LIST\"" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "NAME_MODULE='configured'" >> "$CONFIG_FILE"
-	echo "NAME_NAME=${REAL_NAME}" >> "$CONFIG_FILE"
+	echo "NAME_NAME='$REAL_NAME'" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "USER_MODULE='configured'" >> "$CONFIG_FILE"
-	echo "USER_NAME='${USERNAME}'" >> "$CONFIG_FILE"
+	echo "USER_NAME='$USERNAME'" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "USERPASS_MODULE='configured'" >> "$CONFIG_FILE"
-	echo "USERPASS_CRYPT='${USERPASS}'" >> "$CONFIG_FILE"
+	echo "USERPASS_CRYPT='$USERPASS'" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "ROOTPASS_MODULE='configured'" >> "$CONFIG_FILE"
-	echo "ROOTPASS_CRYPT='${ROOTPASS}'" >> "$CONFIG_FILE"
+	echo "ROOTPASS_CRYPT='$ROOTPASS'" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "HOST_MODULE='configured'" >> "$CONFIG_FILE"
-	echo "HOST_NAME='${HOST_NAME}'" >> "$CONFIG_FILE"
+	echo "HOST_NAME='$HOST_NAME'" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
 	echo "SERVICES_MODULE='configured'" >> "$CONFIG_FILE"
 	echo "# Possible services are for now: cups smail ssh samba" >> "$CONFIG_FILE"
 	echo "# Default value is: cups" >> "$CONFIG_FILE"
-	echo "SERVICES_START=\"${SERVICES_LIST}\"" >> "$CONFIG_FILE"
+	echo "SERVICES_START=\"$SERVICES_LIST\"" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
@@ -1453,7 +1453,7 @@ write_config() {
 
 	echo "# Where the Boot-Loader will be installed" >> "$CONFIG_FILE"
 	echo "# Possible are: ESP|MBR|Partition" >> "$CONFIG_FILE"
-	echo "BOOT_WHERE=${BOOT_WHERE}" >> "$CONFIG_FILE"
+	echo "BOOT_WHERE=$BOOT_WHERE" >> "$CONFIG_FILE"
 
 	echo "" >> "$CONFIG_FILE"
 
