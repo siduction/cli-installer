@@ -1,10 +1,13 @@
-cli-installer (0.5.7-4) unstable; urgency=medium
+cli-installer (0.5.8) unstable; urgency=medium
 
   [ Axel Konrad ]
   * cli-installer
     - Removed curly braces.
 
- -- Axel Konrad <ak-li@siduction.org> Wed, 13 May 2026 19:28:03 +0200
+  [ Torsten Wohlfarth ]
+  * packaging
+
+ -- Torsten Wohlfarth <towo@siduction.org>  Thu, 14 May 2026 13:50:29 +0200
 
 cli-installer (0.5.7-3) unstable; urgency=medium
 
