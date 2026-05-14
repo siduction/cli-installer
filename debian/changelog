@@ -17,7 +17,7 @@ cli-installer (0.5.7-3) unstable; urgency=medium
       to format the ESP.
     - Module 'input_root_pass': root in uppercase in the text of the message.
 
- -- Axel Konrad <ak-li@siduction.org> Fri, 08 May 2026 14:27:20 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Fri, 08 May 2026 14:27:20 +0200
 
 cli-installer (0.5.7-2) unstable; urgency=medium
 
@@ -27,7 +27,7 @@ cli-installer (0.5.7-2) unstable; urgency=medium
     - Remove the mount points ‘/efi’ and ‘/boot/efi’ from the mount point list
       if the place_boot_loader option is set to ‘MBR’ or ‘Partition’. 
 
- -- Axel Konrad <ak-li@siduction.org> Mon, 04 May 2026 14:30:40 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Mon, 04 May 2026 14:30:40 +0200
 
 cli-installer (0.5.7-1) unstable; urgency=medium
 
@@ -35,7 +35,7 @@ cli-installer (0.5.7-1) unstable; urgency=medium
   * cli-installer
     - Typo in auto_mount_partitions fixed.
 
- -- Axel Konrad <ak-li@siduction.org> Sun, 03 May 2026 15:25:50 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Sun, 03 May 2026 15:25:50 +0200
 
 cli-installer (0.5.7) unstable; urgency=medium
 
@@ -51,7 +51,7 @@ cli-installer (0.5.7) unstable; urgency=medium
   * copyright
     - Date fixed
 
- -- Axel Konrad <ak-li@siduction.org> Sat, 02 May 2026 20:00:15 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Sat, 02 May 2026 20:00:15 +0200
 
 cli-installer (0.5.6) unstable; urgency=medium
 
@@ -67,7 +67,7 @@ cli-installer (0.5.6) unstable; urgency=medium
       cli-installer script. This prevents a cumulative loop.
   * Moved check_existing_home script to 'obsolet'.
 
- -- Axel Konrad <ak-li@siduction.org> Wed, 28 Jan 2026 17:08:42 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Wed, 28 Jan 2026 17:08:42 +0200
 
 cli-installer (0.5.5) unstable; urgency=medium
 
@@ -78,7 +78,7 @@ cli-installer (0.5.5) unstable; urgency=medium
     - Fix space for title in dialog
   * nonfree moved to 'obsolet'
 
- -- Axel Konrad <ak-li@siduction.org> Fri, 16 Jan 2026 19:26:31 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Fri, 16 Jan 2026 19:26:31 +0200
 
 cli-installer (0.5.4) unstable; urgency=medium
 
