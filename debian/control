@@ -4,15 +4,14 @@ Priority: extra
 Maintainer: Alf Gaida <agaida@siduction.org>
 Uploaders: Ovidiu Angelescu <convbsd@siduction.net>,
            J. Hamatoma <hama@siduction.net> 
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (>= 10)
 Standards-Version: 3.9.8
 Vcs-Git: git://git.siduction.org/packages/siduction-repository/cli-installer.git
 Vcs-Browser: http://git.siduction.org/?p=packages/siduction-repository/cli-installer.git
 
 Package: cli-installer
 Architecture: all
-Depends: ${shlibs:Depends},
-         ${misc:Depends},
+Depends: ${misc:Depends},
          fll-installer,
          siduction-scripts (>= 0.4.18),
          fll-live-initscripts,
