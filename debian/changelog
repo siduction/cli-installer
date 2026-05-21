@@ -1,3 +1,16 @@
+cli-installer (0.5.7-5) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Set variable TERM to 'linux', because using 'xterm' makes
+      the output from 'dialog' unreadable.
+    - Command 'trap' extended.
+    - Added several spaces in messages.
+    - Fixed an issue with setting the HOME partition when
+      the user selects multiple partitions to mount.
+
+ -- Axel Konrad <ak-li@siduction.org> Thu, 21 May 2026 22:47:52 +0200
+
 cli-installer (0.5.7-4) unstable; urgency=medium
 
   [ Axel Konrad ]
