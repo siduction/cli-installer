@@ -2,6 +2,19 @@ cli-installer (0.5.8-1) unstable; urgency=medium
 
   [ Axel Konrad ]
   * cli-installer
+    - Set the height and width of the ssft output windows to fixed values.
+    - Reset the values when the program exits.
+    - The format of the messages for output via SSFT has been adjusted
+      to match the fixed values.
+    - Reorder ' DEFINE CONSTANTS' and 'VARIABLES NEEDED BY THE CLI-INSTALLER'.
+    - Fix current timezone output.
+
+ -- Axel Konrad <ak-li@siduction.org> Tue, 26 May 2026 17:14:09 +0200
+
+cli-installer (0.5.8-1) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
     - Set variable TERM to 'linux', because using 'xterm' makes
       the output from 'dialog' unreadable.
     - Command 'trap' extended.
