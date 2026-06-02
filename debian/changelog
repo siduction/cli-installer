@@ -1,4 +1,4 @@
-cli-installer (0.5.8-2) unstable; urgency=medium
+cli-installer (0.5.9) unstable; urgency=medium
 
   [ Axel Konrad ]
   * cli-installer
@@ -9,7 +9,7 @@ cli-installer (0.5.8-2) unstable; urgency=medium
     - Reorder ' DEFINE CONSTANTS' and 'VARIABLES NEEDED BY THE CLI-INSTALLER'.
     - Fix current timezone output.
 
- -- Axel Konrad <ak-li@siduction.org> Tue, 26 May 2026 17:14:09 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Tue, 26 May 2026 17:14:09 +0200
 
 cli-installer (0.5.8-1) unstable; urgency=medium
 
@@ -22,7 +22,7 @@ cli-installer (0.5.8-1) unstable; urgency=medium
     - Fixed an issue with setting the HOME partition when
       the user selects multiple partitions to mount.
 
- -- Axel Konrad <ak-li@siduction.org> Thu, 21 May 2026 22:47:52 +0200
+ -- Axel Konrad <ak-li@siduction.org>  Thu, 21 May 2026 22:47:52 +0200
 
 cli-installer (0.5.8) unstable; urgency=medium
 
