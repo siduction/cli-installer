@@ -152,7 +152,7 @@ fi
 PART_LIST=$(/usr/share/fll-installer-common/disk -p 2>/dev/null \
 				| grep -v ",swap," | cut -d "," -f1)
 SWAP_PART_LIST=$(blkid -t TYPE=swap -o device | sort)
-MNT_POINTS="boot boot/efi efi home opt root tmp usr var "
+MNT_POINTS="boot boot/efi efi self_specify home opt root tmp usr var "
 
 
 ### VARIABLES NEEDED BY THE CONFIG FILE
@@ -704,9 +704,10 @@ select_fs() {
 	fi
 
 	# If the user selects btrfs we have some work to do.
-	# Reduce list of available mount points.
 	if [ "$FILESYSTEM" = "btrfs" ]; then
-		MNT_POINTS="boot boot/efi efi "
+		# Remove the mount points required by the subvolumes.
+		MNT_POINTS="${MNT_POINTS/home /}"
+		MNT_POINTS="${MNT_POINTS/root /}"
 		
 		# Install Snapper and siduction-btrfs
 		display_msg "$title" "
@@ -789,7 +790,7 @@ custom_root() {
 				fi
 				
 				# Ensure that the device is truly a partition of the form
-				# /dev/sd[a-z][0-9] or /dev/nvme[0-9]n[0-9]p[0-9]\+
+				# /dev/[sv]d[a-z][0-9] or /dev/nvme[0-9]n[0-9]p[0-9]\+
 				# with a number at the end.
 				# In case of /dev/mapper/* make no checks as we
 				# can not assume anything about the partition name.
@@ -902,13 +903,16 @@ input_boot_loader() {
 							XBOOTLDR, mounted at /boot "
 						else
 							# ESP only, mount at /boot
-							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/boot "
+							mnt_point="boot"
+							MOUNT_POINT_LIST="$MOUNT_POINT_LIST$found:/$mnt_point "
 							remove_part_point "$found"
+							# The ‘efi’ mount points must also be removed.
+							mnt_point="efi"
+							remove_part_point
 							msg="
 							SUCCESS 
 							Use ESP, mounted at /boot "
 						fi
-						MNT_POINTS="home opt root tmp usr var "
 						BOOT_WHERE="ESP"
 					else
 					# Error with the properties of the ESP.
@@ -1122,16 +1126,32 @@ select_swap() {
 
 # Set mount points for partitions other than root and swap
 mount_points() {
-	if [ -n "$MNT_POINTS" ] && [ -n "$PART_LIST" ]; then
-		title="  Set mount points  "
-		msg="
-Do you want to set mount points for other partitions?
-
+	local msg_1
+	msg_1="
 W: The partitions need to be already formated.
 
 I: The root partition and, if specified earlier, 
 	the swap partition, have already been set up 
-	and should not be set up again."
+	and should not be set up again.
+	"
+	title="  Set mount points  "
+	if [ "$FILESYSTEM" = "btrfs" ]; then
+		msg="
+W: The Btrfs file system was selected for the
+		installation. We strongly recommend against
+		creating any additional partitions.
+		Instead, additional subvolumes should be
+		created as needed after installation and let
+		Btrfs handle disk space management automatically.
+		$msg_1
+		Do you still want to continue set mount points?"
+	else
+		msg="
+Do you want to set mount points for other partitions?
+	$msg_1"
+	fi
+	
+	if [ -n "$PART_LIST" ]; then
 		if yesno "$title" "$msg"; then
 			set_mount_points
 			msg="
@@ -1143,6 +1163,8 @@ I: The root partition and, if specified earlier,
 }
 
 set_mount_points() {
+	local bad_chars=""
+	local msg_2
 	mnt_point=""
 	while [ -n "$PART_LIST" ]; do
 		msg="
@@ -1152,24 +1174,17 @@ set_mount_points() {
 		if select_one "$title" "$msg" $PART_LIST; then
 			partition="$SSFT_RESULT"
 			
-			if [ -n "$MNT_POINTS" ]; then
+			msg="
+			Choose a mount point for $partition "
+			if ! select_one "$title" "$msg" $MNT_POINTS; then
+			# SEE TO OFFER THE USER THE OPTION TO CANCEL
+			# IN CASE HE CHOSE THE WRONG MOUNT POINT
+			# If user pressed cancel break out of the loop
 				msg="
-				Choose a mount point for $partition "
-				if ! select_one "$title" "$msg" $MNT_POINTS; then
-				# SEE TO OFFER THE USER THE OPTION TO CANCEL
-				# IN CASE HE CHOSE THE WRONG MOUNT POINT
-				# If user pressed cancel break out of the loop
-					msg="
-					You have canceled the process. "
-					break
-				fi
-				mnt_point="$SSFT_RESULT"
-			else
-				# No mount points left.
-				msg="
-				No mount points left. "
+				You have canceled the process. "
 				break
 			fi
+			mnt_point="$SSFT_RESULT"
 			
 			case "$mnt_point" in
 				home)
@@ -1179,7 +1194,46 @@ set_mount_points() {
 				remove_part_point "$partition"
 				CHECK_IF_HOME_EXISTS="yes"
 				;;
-				boot/efi)
+				self_specify)
+				msg=" 
+				Please input a mount point for $partition "
+				until ! input_string "$title" "$msg"; do
+					# Check for invalid input.
+					mnt_point="$(sed -e 's|^/\+||' -e 's|/\+$||' <<< $SSFT_RESULT)"
+					bad_chars="$(grep -o '[^[:alnum:]/._-]' <<< $mnt_point)"
+					msg_2=""
+					if grep -q ":/$mnt_point" <<< $MOUNT_POINT_LIST; then
+						msg_2="
+E: The mount point has already been set."
+					elif [ -n "$bad_chars" ]; then
+						msg_2="
+E: Your input contains the following invalid characters:
+
+$bad_chars"
+					elif [ "$mnt_point" = "root" ] || [ "$mnt_point" = "home" ]; then
+						msg_2="
+E: The mount point ´/$mnt_point´ is used for a subvolume."
+					fi
+					
+					# Options when an invalid value is entered.
+					if [ -n "$msg_2" ]; then
+						msg="$msg_2
+						
+						Do you want to set a different mount point?"
+						if yesno "$title" "$msg"; then
+							msg=" 
+							Please input a mount point for $partition "
+							continue
+						else
+							break
+						fi
+					else
+						# The space at the end is absolutely necessary.
+						MOUNT_POINT_LIST="$MOUNT_POINT_LIST$partition:/$mnt_point "
+						remove_part_point "$partition"
+						break
+					fi
+				done
 				;;
 				*)
 				# The space at the end is absolutely necessary.
@@ -1209,7 +1263,9 @@ auto_mount_partitions() {
 	already specified? 
 
 	I: The mount points follow the pattern 
-	'/disks/sda4' or '/disks/nvme0n1p4'"
+	'/disks/sda4' or '/disks/nvme0n1p4'
+	
+	Default is 'no'"
 	
 	SSFT_DEFAULT="no"
 	options="no yes"
@@ -1242,8 +1298,6 @@ input_real_name() {
 	while ! input_string "$title" "$msg"; do
 		if yesno "$title" "
 			Continue without real name?"; then
-			display_msg "$title" "
-			OK, no real name"
 			return 0
 		else
 			if ! input_string "$title" "$msg"; then
@@ -1666,9 +1720,6 @@ msg="
   will stay in $CONFIG_FILE! "
 if yesno "$title" "$msg"; then
 	clear
-	# Return to the previous tty setting.
-#	/usr/bin/setupcon
-
 	fll-installer || echo "Some error occured. Looking at $ERROR_LOG might provide you with answers" && exit 1
 else
 	clear
@@ -1676,6 +1727,7 @@ fi
 
 # if all goes well remove error log and resets $TERM and ssft.
 rm -f "$ERROR_LOG"
+# Return to the previous tty setting.
 TERM=$term_org
 mv /usr/bin/ssft-bak.sh /usr/bin/ssft.sh
 

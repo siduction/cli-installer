@@ -1,3 +1,17 @@
+cli-installer (0.5.10) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Function ´mount_points´: Expanded warning text when using Btrfs.
+    - Function ´set_mount_points´: Allows the user to specify custom
+      mount points. Validate the input.
+    - Function ´input_real_name´: Removed the additional confirmation
+      dialog if no name was entered.
+  * um_all: ´grep -v "/fll/persist"‘ has been removed;
+      ´persist’ is not supported.
+
+ -- Axel Konrad <ak-li@siduction.org>  Mon, 08 Jun 2026 16:13:23 +0200
+
 cli-installer (0.5.9) unstable; urgency=medium
 
   [ Axel Konrad ]

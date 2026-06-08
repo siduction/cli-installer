@@ -44,11 +44,14 @@ umount_all_drives() {
 	# Will break if there is no FllDev as it will exclude everything
 	# There must always be an FLL_MOUNTPOINT to copy from though
 	# Could it sanely disagree with /etc/default/distro ?
-	mount | grep "^/" | grep -v "/fll/persist" | grep -v "^$FllDev" | cut -d" " -f1,3,5 > "$TempFile"
+	mount | grep "^/" | grep -v "^$FllDev" | cut -d" " -f1,3,5 > "$TempFile"
+
+# alte Version: (persist wird nicht mehr benutzt!)
+#	mount | grep "^/" | grep -v "/fll/persist" | grep -v "^$FllDev" | cut -d" " -f1,3,5 > "$TempFile"
 
 	while read device mountpoint typ; do 
 		case "$typ" in 
-		ext2|ext3|ext4|reiserfs|vfat|jfs|xfs|ntfs)
+		ext2|ext3|ext4|btrfs|reiserfs|vfat|jfs|xfs|ntfs)
 			uuid=$(lsblk -no UUID "$device")
 			if [ ! "/fll${device#/dev}" = "$mountpoint" ];  then
 				if [ "$do_it" = "check" ]; then 
