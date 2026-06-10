@@ -319,7 +319,7 @@ set_timezone() {
 
 # Internet connection test.
 check_con() {
-	if ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"; then
+	if ping -c 2 siduction.org 2>/dev/null | grep -q "2 received"; then
 		CONNECT="yes"
 	else
 		title="  Internet connection  "
@@ -330,6 +330,10 @@ check_con() {
 		if yesno "$title" "$msg"; then
 			clear
 			/usr/bin/nmtui
+			clear
+			# We do it twice. Somtimes the first failed.
+			ping -c 2 siduction.org &>/dev/null
+			sleep 1
 			if ping -c 3 siduction.org 2>/dev/null | grep -q "3 received"; then
 			CONNECT="yes"
 			fi
@@ -715,14 +719,7 @@ select_fs() {
 			Packages Snapper and siduction-btrfs 
 			will now be installed. "
 		clear
-		local pkg_path="/usr/share/siduction/btrfs-packages"
-		if ! /usr/bin/apt install \
-			$pkg_path/snapper_* \
-			$pkg_path/libsnapper* \
-			$pkg_path/siduction-btrfs* \
-			$pkg_path/libbtrfs* \
-			$pkg_path/libboost-thread*;
-		then
+		if ! /usr/bin/apt install /usr/share/siduction/btrfs-packages/*; then
 			display_msg "$title" "
 			E: Can't install Snapper and siduction-btrfs.
 			You will need to do this after the system installation."

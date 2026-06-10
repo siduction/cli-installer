@@ -1,3 +1,13 @@
+cli-installer (0.5.11) unstable; urgency=medium
+
+  [ Axel Konrad ]
+  * cli-installer
+    - Function ´select_fs´: Fixed an issue with ‘install btrfs packages’.
+    - Function ´check_con´: After using `nmtui`, run `ping` twice, as the
+      first attempt sometimes fails.
+
+ -- Axel Konrad <ak-li@siduction.org>  Wed, 10 Jun 2026 13:18:38 +0200
+
 cli-installer (0.5.10) unstable; urgency=medium
 
   [ Axel Konrad ]
